@@ -1,9 +1,10 @@
-const http = require("node:http");
-const fs = require("node:fs/promises");
-const path = require("node:path");
-const { URL } = require("node:url");
+import http from "node:http";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { URL } from "node:url";
+import { fileURLToPath } from "node:url";
 
-const root = __dirname;
+const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 4173);
 
 const mime = {
@@ -43,13 +44,21 @@ server.listen(port, () => {
 
 async function extractSurvey(targetUrl) {
   if (!targetUrl) throw new Error("请提供问卷链接。");
-  const parsed = new URL(targetUrl);
+  let parsed;
+  try {
+    parsed = new URL(targetUrl);
+  } catch {
+    throw new Error("问卷链接格式不正确，请粘贴完整的 https://doctor.wenwo.com/medic/nsurvey/... 链接。");
+  }
   if (!/wenwo\.com$/.test(parsed.hostname)) throw new Error("目前只支持 wenwo.com 问卷链接。");
+  if (!parsed.pathname.includes("/medic/nsurvey") && !parsed.pathname.includes("/nsurvey")) {
+    throw new Error("链接路径不是 medic/nsurvey 问卷页面，请确认复制的是问卷答卷链接。");
+  }
 
   const surveyId = parsed.pathname.match(/\/nsurvey\/(\d+)/)?.[1] || parsed.searchParams.get("questionnaireId");
   const answerId = parsed.searchParams.get("answerId");
-  if (!surveyId && !answerId) throw new Error("链接中未识别到 surveyId 或 answerId。");
-  if (!answerId) throw new Error("链接中没有 answerId，无法抓取已填写答案。");
+  if (!surveyId && !answerId) throw new Error("链接中未识别到问卷 ID 或答卷 ID，请确认链接完整。");
+  if (!answerId) throw new Error("链接中没有 answerId，只能打开问卷但无法读取已填写答案。请复制包含 answerId 的答卷链接。");
 
   const answerDetail = await postWenwo("/medic/h5/formtemplate/getQuestionnaireAnswerDetail", {
     behaveId: answerId,
@@ -58,7 +67,7 @@ async function extractSurvey(targetUrl) {
   }, targetUrl);
 
   if (answerDetail.status !== 200 || !answerDetail.data) {
-    throw new Error(answerDetail.message || "问卷答案接口返回异常。");
+    throw new Error(answerDetail.message || "问卷答案接口返回异常，可能是链接过期、无权限或接口格式变化。");
   }
 
   const title = answerDetail.data.title || "";
