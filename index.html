@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>病例问卷审核工具</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>病例问卷审核工具</h1>
+            <p>粘贴题号与答案，自动检查填写范围、必填项、时间线和题间逻辑。</p>
+          </div>
+          <div class="actions">
+            <button id="loadSampleBtn" type="button">载入示例</button>
+            <button id="clearBtn" type="button" class="secondary">清空</button>
+          </div>
+        </header>
+
+        <section class="control-band" aria-label="审核控制">
+          <label class="link-field">
+            问卷链接
+            <input id="surveyUrlInput" type="url" placeholder="https://doctor.wenwo.com/medic/nsurvey/..." />
+          </label>
+          <button id="extractUrlBtn" type="button">读取链接</button>
+          <label>
+            病种模板
+            <select id="templateSelect">
+              <option value="blood">血液肿瘤</option>
+              <option value="breast">乳腺癌</option>
+            </select>
+          </label>
+          <label>
+            审核严格度
+            <select id="strictnessSelect">
+              <option value="standard">标准</option>
+              <option value="strict">严格</option>
+            </select>
+          </label>
+          <button id="auditBtn" type="button" class="primary">开始审核</button>
+          <span id="linkStatus" class="link-status"></span>
+        </section>
+
+        <section class="input-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>病例内容</h2>
+              <span>支持 “题号 答案” 或页面复制文本</span>
+            </div>
+            <textarea id="caseInput" spellcheck="false" placeholder="示例：
+1 首次就诊时间: 2026-03-24
+5 患者身高(cm): 173
+6 患者体重(kg): 65
+7 体表面积(m²): 2
+15 疾病类型: 多发性骨髓瘤（MM）
+20 ISS分期: Ⅲ期
+39 治疗开始日期: 2025-10-24"></textarea>
+          </div>
+
+          <aside class="panel side-panel">
+            <div class="panel-head">
+              <h2>识别结果</h2>
+              <span id="recognizedCount">0 项</span>
+            </div>
+            <div id="recognizedList" class="recognized-list"></div>
+          </aside>
+        </section>
+
+        <section class="summary-grid" aria-label="审核摘要">
+          <div class="metric high">
+            <span>高风险</span>
+            <strong id="highCount">0</strong>
+          </div>
+          <div class="metric medium">
+            <span>需复核</span>
+            <strong id="mediumCount">0</strong>
+          </div>
+          <div class="metric low">
+            <span>提示</span>
+            <strong id="lowCount">0</strong>
+          </div>
+          <div class="metric status">
+            <span>结论</span>
+            <strong id="auditStatus">待审核</strong>
+          </div>
+        </section>
+
+        <section class="panel result-panel">
+          <div class="panel-head">
+            <h2>审核意见</h2>
+            <button id="copyReportBtn" type="button" class="secondary">复制报告</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>等级</th>
+                  <th>题干</th>
+                  <th>当前值</th>
+                  <th>审核意见</th>
+                  <th>逻辑关系</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody">
+                <tr>
+                  <td colspan="5" class="empty">等待输入病例内容。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel rules-panel">
+          <div class="panel-head">
+            <h2>模板规则</h2>
+            <span id="ruleCount">0 条规则</span>
+          </div>
+          <div id="rulesList" class="rules-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

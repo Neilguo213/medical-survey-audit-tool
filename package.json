@@ -1,0 +1,12 @@
+{
+  "name": "medical-survey-audit-tool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "本地病例问卷审核工具，支持通过问卷链接读取题干和答案并生成审核意见。",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
