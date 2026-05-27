@@ -30,6 +30,17 @@ test("parseCase 保留未匹配题目", () => {
   assert.equal(parsed.unmatchedItems.length, 1);
 });
 
+test("parseCase 支持题目+空格+答案", () => {
+  const parsed = parseCase("身高 153\n体重 51", templates.breast);
+  assert.equal(parsed.answers.height, "153");
+  assert.equal(parsed.answers.weight, "51");
+});
+
+test("parseCase 支持表格复制文本", () => {
+  const parsed = parseCase("化疗方案\t紫杉醇 80mg 每周", templates.breast);
+  assert.equal(parsed.answers.chemotherapyRegimen, "紫杉醇 80mg 每周");
+});
+
 test("fieldMatcher 支持 aliases 匹配", () => {
   const match = matchField("患者身高(cm)", templates.blood);
   assert.equal(match.field.fieldId, "height");
@@ -75,6 +86,30 @@ test("auditEngine 动态跳题不适用字段不提示缺失", () => {
   const parsed = parseCase("疾病类型: AML\n治疗类型: 化疗\n首次就诊时间: 2026-02-01\n治疗开始日期: 2026-03-01\n疗效评估日期: 2026-04-01", templates.blood);
   const audit = auditCase({ template: templates.blood, parsed, strictness: "strict" });
   assert.ok(!audit.issues.some((issue) => issue.fieldId === "issStage" && issue.issueType === "missing"));
+});
+
+test("auditEngine 药物无剂量触发需复核", () => {
+  const parsed = parseCase("化疗方案: 紫杉醇\n分子分型: 三阴性\n临床分期: II期\n首次就诊时间: 2026-02-01\n治疗开始时间: 2026-03-01\n评估日期: 2026-04-01\nRECIST: PR", templates.breast);
+  const audit = auditCase({ template: templates.breast, parsed, strictness: "standard" });
+  assert.ok(audit.issues.some((issue) => issue.ruleId === "common.drugDose.missingDose"));
+});
+
+test("auditEngine 笼统治疗方案触发具体药物提示", () => {
+  const parsed = parseCase("联合用药: 联合方案\n疾病类型: MM\n治疗类型: 化疗\n首次就诊时间: 2026-02-01\n治疗开始日期: 2026-03-01\n疗效评估日期: 2026-04-01", templates.blood);
+  const audit = auditCase({ template: templates.blood, parsed, strictness: "standard" });
+  assert.ok(audit.issues.some((issue) => issue.ruleId === "common.drugDose.vagueTreatment"));
+});
+
+test("auditEngine 非淋巴瘤填写 IPI 触发疾病不适配", () => {
+  const parsed = parseCase("疾病类型: 多发性骨髓瘤\nIPI评分: 3\n治疗类型: 化疗\n首次就诊时间: 2026-02-01\n治疗开始日期: 2026-03-01\n疗效评估日期: 2026-04-01", templates.blood);
+  const audit = auditCase({ template: templates.blood, parsed, strictness: "standard" });
+  assert.ok(audit.issues.some((issue) => issue.ruleId === "common.applicability.diseaseScope"));
+});
+
+test("auditEngine 不良反应日期早于治疗开始触发时间线冲突", () => {
+  const parsed = parseCase("疾病类型: AML\n治疗类型: 化疗\n首次就诊时间: 2026-02-01\n治疗开始日期: 2026-03-01\n疗效评估日期: 2026-04-01\n是否出现不良反应: 有\n不良反应日期: 2026-02-20", templates.blood);
+  const audit = auditCase({ template: templates.blood, parsed, strictness: "standard" });
+  assert.ok(audit.issues.some((issue) => issue.ruleId === "common.timeline.adverseEvent"));
 });
 
 for (const item of tests) {

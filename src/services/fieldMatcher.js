@@ -6,7 +6,7 @@ export function matchField(rawQuestion, template, claimedFieldIds = new Set()) {
 
   for (const field of template.fields) {
     if (claimedFieldIds.has(field.fieldId)) continue;
-    const tokens = [field.fieldName, ...(field.aliases || [])].map(normalizeQuestion).filter(Boolean);
+    const tokens = [field.label || field.fieldName, field.key, ...(field.aliases || [])].map(normalizeQuestion).filter(Boolean);
     const scored = scoreTokens(question, tokens);
     if (!best || scored.confidence > best.confidence) {
       best = { field, ...scored };

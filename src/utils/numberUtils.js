@@ -1,6 +1,8 @@
+import { parseNumberWithUnit } from "../validators/valueValidators.js";
+
 export function toNumber(value) {
-  const matched = String(value ?? "").match(/-?\d+(\.\d+)?/);
-  return matched ? Number(matched[0]) : NaN;
+  const parsed = parseNumberWithUnit(value);
+  return parsed ? parsed.value : NaN;
 }
 
 export function hasNumber(value) {

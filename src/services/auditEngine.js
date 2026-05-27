@@ -1,5 +1,7 @@
 import {
   calculationCheck,
+  applicabilityCheck,
+  drugDoseCheck,
   formatCheck,
   parseWarningCheck,
   rangeCheck,
@@ -34,8 +36,10 @@ export function auditCase({ template, parsed, strictness = "standard" }) {
   const issues = [
     ...parseWarningCheck(context),
     ...requiredCheck(context),
+    ...applicabilityCheck(context),
     ...rangeCheck(context),
     ...formatCheck(context),
+    ...drugDoseCheck(context),
     ...calculationCheck(context),
     ...timelineCheck(context),
     ...conditionalCheck(context),

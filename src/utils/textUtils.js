@@ -1,5 +1,7 @@
+import { normalizeWidth } from "../validators/valueValidators.js";
+
 export function normalizeQuestion(value) {
-  return String(value ?? "")
+  return normalizeWidth(value)
     .replace(/^\d+\s*[、.．]?\s*/, "")
     .replace(/[（(][^）)]*(cm|kg|m²|m2|分|%)\s*[）)]/gi, "")
     .replace(/[\s\-—_：:，,。；;（）()\[\]【】]/g, "")
@@ -9,7 +11,7 @@ export function normalizeQuestion(value) {
 }
 
 export function normalizeValue(value) {
-  return String(value ?? "")
+  return normalizeWidth(value)
     .replace(/^["'“”]+|["'“”]+$/g, "")
     .replace(/[□○]/g, "")
     .replace(/[☑✓✔]/g, "")

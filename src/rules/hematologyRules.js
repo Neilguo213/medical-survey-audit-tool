@@ -1,5 +1,6 @@
 import { makeIssue } from "./commonRules.js";
 import { includesAny } from "../utils/textUtils.js";
+import { toNumber } from "../utils/numberUtils.js";
 
 export function hematologyConditionalCheck(context) {
   const { answers, fieldById, strictness } = context;
@@ -104,6 +105,19 @@ export function hematologyDiseaseSpecificCheck(context) {
       strictness: ["standard", "strict"]
     }));
   }
+  if (isMyeloma(answers.diseaseType) && includesAny(answers.myelomaResponse, ["sCR", "CR", "VGPR"]) && isEvidenceStillHigh(answers)) {
+    issues.push(makeIssue({
+      field: fieldById.myelomaResponse,
+      issueType: "consistency",
+      severity: "medium",
+      message: "骨髓瘤疗效等级与 M蛋白/浆细胞/轻链记录可能不一致。",
+      logicReason: "sCR > CR > VGPR > PR，深度缓解通常需要 M蛋白、骨髓浆细胞、轻链等证据同步支持。",
+      recommendation: "请复核 M蛋白、骨髓浆细胞比例、游离轻链和疗效评价依据。",
+      evidence: `疗效=${answers.myelomaResponse || ""}；M蛋白=${answers.mProtein || ""}；浆细胞=${answers.boneMarrowPlasmaCell || ""}；轻链=${answers.freeLightChain || ""}`,
+      ruleId: "hematology.diseaseSpecific.myelomaResponseEvidence",
+      strictness: ["standard", "strict"]
+    }));
+  }
   return issues;
 }
 
@@ -145,7 +159,37 @@ export function hematologyConsistencyCheck(context) {
   if (isMyeloma(answers.diseaseType) && (answers.leukemiaResponse || answers.lymphomaResponse)) {
     issues.push(responseMismatch(fieldById.myelomaResponse, answers, "骨髓瘤", "骨髓瘤疗效标准"));
   }
+  if (isLymphoma(answers.diseaseType) && includesAny(answers.lymphomaResponse, ["CR"]) && /肿大|增大|明显|残留/.test(answers.lymphNodeRegion || "")) {
+    issues.push(makeIssue({
+      field: fieldById.lymphomaResponse,
+      issueType: "consistency",
+      severity: "high",
+      message: "淋巴瘤疗效为 CR，但仍描述明显肿大淋巴结。",
+      logicReason: "CR 通常不应仍有明确活动性病灶描述；可能是残留纤维化、影像描述未更新或疗效评价录入不一致。",
+      recommendation: "请复核淋巴结区域描述、PET-CT 结果和疗效评价。",
+      evidence: `疗效=${answers.lymphomaResponse || ""}；淋巴结=${answers.lymphNodeRegion || ""}`,
+      ruleId: "hematology.consistency.lymphomaCRNode",
+      strictness: ["standard", "strict"]
+    }));
+  }
+  if (isLeukemia(answers.diseaseType) && includesAny(answers.leukemiaResponse, ["CR"]) && toNumber(answers.blastPercentage) > 5) {
+    issues.push(makeIssue({
+      field: fieldById.leukemiaResponse,
+      issueType: "consistency",
+      severity: "high",
+      message: "白血病疗效为 CR，但原始细胞比例明显升高。",
+      logicReason: "CR 通常要求骨髓原始细胞比例处于缓解标准范围；当前记录提示需复核。",
+      recommendation: "请复核原始细胞比例、骨髓报告和疗效评价。",
+      evidence: `疗效=${answers.leukemiaResponse || ""}；原始细胞=${answers.blastPercentage || ""}`,
+      ruleId: "hematology.consistency.leukemiaCRBlast",
+      strictness: ["standard", "strict"]
+    }));
+  }
   return issues;
+}
+
+function isEvidenceStillHigh(answers) {
+  return toNumber(answers.boneMarrowPlasmaCell) >= 5 || /阳性|升高|异常/.test(`${answers.mProtein || ""}${answers.freeLightChain || ""}`);
 }
 
 function responseMismatch(field, answers, disease, expected) {
